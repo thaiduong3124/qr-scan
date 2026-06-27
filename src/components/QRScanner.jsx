@@ -4,9 +4,10 @@ import QrScanner from 'qr-scanner'
 export default function QRScanner({ onScan }) {
   const videoRef = useRef(null)
   const scannerRef = useRef(null)
-  const [facing, setFacing] = useState('environment')
   const [multiCam, setMultiCam] = useState(false)
+  const [facing, setFacing] = useState('environment')
 
+  // khởi tạo scanner một lần duy nhất
   useEffect(() => {
     if (!videoRef.current) return
 
@@ -14,7 +15,7 @@ export default function QRScanner({ onScan }) {
       videoRef.current,
       (result) => onScan(result.data),
       {
-        preferredCamera: facing,
+        preferredCamera: 'environment',
         highlightScanRegion: false,
         highlightCodeOutline: false,
         maxScansPerSecond: 30,
@@ -25,7 +26,6 @@ export default function QRScanner({ onScan }) {
 
     scanner.start()
       .then(() => {
-        // gọi sau khi scanner đã start để tránh tạo stream tạm
         QrScanner.listCameras(true).then((cams) => setMultiCam(cams.length > 1))
       })
       .catch((err) => {
@@ -36,7 +36,14 @@ export default function QRScanner({ onScan }) {
       scanner.stop()
       scanner.destroy()
     }
-  }, [facing, onScan])
+  }, [onScan])
+
+  // switch camera không destroy scanner
+  const toggleCamera = () => {
+    const next = facing === 'environment' ? 'user' : 'environment'
+    setFacing(next)
+    scannerRef.current?.setCamera(next).catch(console.error)
+  }
 
   return (
     <div className="scanner-container">
@@ -52,11 +59,7 @@ export default function QRScanner({ onScan }) {
       </div>
 
       {multiCam && (
-        <button
-          className="cam-flip-btn"
-          onClick={() => setFacing((f) => (f === 'environment' ? 'user' : 'environment'))}
-          title="Xoay camera"
-        >
+        <button className="cam-flip-btn" onClick={toggleCamera} title="Xoay camera">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 7h-9" /><path d="M14 17H5" />
             <circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" />
